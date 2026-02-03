@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: sharegym-server
+
+  # 데이터베이스 설정
+  datasource:
+    url: jdbc:mysql://garabudb.cdk04icsut8p.ap-northeast-2.rds.amazonaws.com:3306/sharefitdb?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: garabu
+    password: password # 실제 환경에서는 환경변수로 관리
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+
+  # JPA 설정
+  jpa:
+    hibernate:
+      ddl-auto: update # 운영: validate, 개발: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        default_batch_fetch_size: 100
+    show-sql: false # 운영: false, 개발: true
+    open-in-view: false
+
+  # Redis 설정
+  data:
+    redis:
+      host: redis
+      port: 6379
+      password: 1234 # Redis 비밀번호 (선택적)
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # 파일 업로드 설정
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+  # 프로파일 설정
+  profiles:
+    active: dev # dev, prod
+
+# 서버 설정
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# JWT 설정
+jwt:
+  secret: ${JWT_SECRET:your-256-bit-secret-key-for-development-only-change-in-production}
+  expiration: 86400000 # 24시간 (밀리초)
+  refresh-expiration: 604800000 # 7일 (밀리초)
+
+# AWS S3 설정
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:sharegym-images}
+    region: ${AWS_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY:your-access-key}
+    secret-key: ${AWS_SECRET_KEY:your-secret-key}
+    endpoint-url: https://s3.ap-northeast-2.amazonaws.com
+
+# Firebase 설정 (FCM Push)
+firebase:
+  config-path: ${FIREBASE_CONFIG_PATH:classpath:firebase-service-account.json}
+
+# CORS 설정
+cors:
+  allowed-origins:
+    - http://localhost:8081  # Expo 개발 서버
+    - http://localhost:19000  # Expo 웹
+    - http://localhost:19001  # Expo 웹
+    - http://localhost:19002  # Expo 웹
+    - exp://192.168.0.0/--/* # Expo 앱 (IP 주소 변경 필요)
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  allowed-headers:
+    - Authorization
+    - Content-Type
+    - X-Requested-With
+  exposed-headers:
+    - Authorization
+  allow-credentials: true
+  max-age: 3600
+
+# Actuator 설정 (모니터링)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# Logging 설정
+logging:
+  level:
+    root: INFO
+    com.sharegym: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG # SQL 로깅
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE # 파라미터 로깅
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/sharegym.log
+    max-size: 10MB
+    max-history: 30
+
+# Springdoc OpenAPI 설정 (Swagger)
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+  default-consumes-media-type: application/json
+  default-produces-media-type: application/json

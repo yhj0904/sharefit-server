@@ -1,0 +1,172 @@
+### Documentation ###
+CLAUDE.md
+IMPLEMENTATION_STATUS.md
+HELP.md
+
+### Build ###
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### Eclipse ###
+.metadata
+.project
+.classpath
+.settings/
+*.launch
+.buildpath
+
+### macOS ###
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### Windows ###
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+### Linux ###
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+### Application ###
+*.log
+*.log.*
+logs/
+log/
+/tmp
+*.tmp
+
+### Environment ###
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+
+### Security ###
+*.key
+*.pem
+*.crt
+*.p12
+*.jks
+*.keystore
+*.truststore
+
+### Database ###
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+*.trace.db
+
+### Firebase ###
+firebase-service-account.json
+firebase-adminsdk-*.json
+*-firebase-adminsdk-*.json
+
+### AWS ###
+aws-credentials.json
+.aws/
+
+### Package Files ###
+*.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+### Maven (if used later) ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### Node (for frontend reference) ###
+node_modules/
+
+### Test Coverage ###
+coverage/
+*.lcov
+.nyc_output
+
+### Backup Files ###
+*.bak
+*.backup
+*.old
+*.orig
+
+### Generated Files ###
+generated/
+gen/

@@ -1,0 +1,62 @@
+# Development Profile Configuration
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  # H2 Database
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+# Logging
+logging:
+  level:
+    com.sharegym.sharegym_server: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type: TRACE
+
+# JWT
+jwt:
+  secret: dev-secret-key-for-local-development-only-not-for-production-use-at-least-32-characters-long
+  expiration: 86400000  # 24 hours
+  refresh-expiration: 604800000  # 7 days
+
+# CORS
+cors:
+  allowed-origins: "*"
+  allowed-methods: "*"
+  allowed-headers: "*"
+  exposed-headers: "Authorization"
+  allow-credentials: true
+  max-age: 3600
+
+# Server
+server:
+  port: 8080
+
+# File Upload
+file:
+  upload-dir: ./uploads
+
+# SSE
+sse:
+  timeout: 180000  # 3 minutes
