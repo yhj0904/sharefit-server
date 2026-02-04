@@ -110,16 +110,16 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INVALID_TOKEN);
         }
 
-        // 사용자 ID 추출
-        Long userId = jwtProvider.getUserIdFromToken(refreshToken);
+        // 토큰에서 이메일 추출 (새로운 방식)
+        String email = jwtProvider.getEmailFromToken(refreshToken);
 
-        // 사용자 조회
-        User user = userRepository.findById(userId)
+        // 사용자 조회 (이메일로)
+        User user = userRepository.findByEmail(email)
             .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         // 새로운 토큰 생성
-        String newAccessToken = jwtProvider.generateAccessToken(userId);
-        String newRefreshToken = jwtProvider.generateRefreshToken(userId);
+        String newAccessToken = jwtProvider.generateAccessToken(user.getEmail(), user.getId());
+        String newRefreshToken = jwtProvider.generateRefreshToken(user.getEmail(), user.getId());
 
         log.info("Token refreshed for user: {}", user.getEmail());
 

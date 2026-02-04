@@ -82,20 +82,28 @@ public class SecurityConfig {
             )
 
             // 요청 인증 설정
+            // 주의: application.yaml의 context-path: /api/v1 설정으로 인해
+            // 실제 URL은 /api/v1/auth/** 형태지만, Spring Security는 context-path 이후 경로만 본다
             .authorizeHttpRequests(auth -> auth
                 // 공개 엔드포인트
                 .requestMatchers(
-                    "/api/v1/auth/**",
-                    "/api/v1/health",
+                    "/auth/**",          // /api/v1/auth/**
+                    "/health/**",        // /api/v1/health/**
                     "/actuator/**",
                     "/swagger-ui/**",
+                    "/swagger-ui.html",
                     "/api-docs/**",
-                    "/h2-console/**"
+                    "/api-docs",
+                    "/v3/api-docs/**",
+                    "/h2-console/**",
+                    "/error"
                 ).permitAll()
                 // WebSocket 엔드포인트
                 .requestMatchers("/ws/**", "/sse/**").permitAll()
+                // 특정 workout 엔드포인트는 공개 (프론트엔드 API 규격)
+                .requestMatchers("/users/*/workouts", "/users/*/workouts/last").permitAll()
                 // 관리자 전용 엔드포인트
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 // 나머지는 인증 필요
                 .anyRequest().authenticated()
             )

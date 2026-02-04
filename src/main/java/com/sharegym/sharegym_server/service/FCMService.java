@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -258,6 +259,31 @@ public class FCMService {
         } else {
             log.error("FCM 전송 실패. errorCode: {}, message: {}",
                     errorCode, e.getMessage());
+        }
+    }
+
+    /**
+     * 사용자의 FCM 토큰 업데이트
+     */
+    @Transactional
+    public void updateFcmToken(Long userId, String fcmToken) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        user.setFcmToken(fcmToken);
+        userRepository.save(user);
+        log.debug("FCM 토큰 업데이트 완료. userId: {}", userId);
+    }
+
+    /**
+     * 사용자의 FCM 토큰 삭제 (로그아웃 시)
+     */
+    @Transactional
+    public void removeFcmToken(Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        if (user != null) {
+            user.setFcmToken(null);
+            userRepository.save(user);
+            log.debug("FCM 토큰 삭제 완료. userId: {}", userId);
         }
     }
 }

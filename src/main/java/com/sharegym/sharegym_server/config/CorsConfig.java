@@ -7,6 +7,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -15,31 +16,33 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins}")
-    private List<String> allowedOrigins;
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOrigins;
 
-    @Value("${cors.allowed-methods}")
-    private List<String> allowedMethods;
+    @Value("${cors.allowed-methods:GET,POST,PUT,DELETE,OPTIONS}")
+    private String allowedMethods;
 
-    @Value("${cors.allowed-headers}")
-    private List<String> allowedHeaders;
+    @Value("${cors.allowed-headers:Authorization,Content-Type,X-Requested-With}")
+    private String allowedHeaders;
 
-    @Value("${cors.exposed-headers}")
-    private List<String> exposedHeaders;
+    @Value("${cors.exposed-headers:Authorization}")
+    private String exposedHeaders;
 
-    @Value("${cors.allow-credentials}")
+    @Value("${cors.allow-credentials:true}")
     private boolean allowCredentials;
 
-    @Value("${cors.max-age}")
+    @Value("${cors.max-age:3600}")
     private long maxAge;
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(allowedOrigins);
-        configuration.setAllowedMethods(allowedMethods);
-        configuration.setAllowedHeaders(allowedHeaders);
-        configuration.setExposedHeaders(exposedHeaders);
+
+        // Convert comma-separated strings to lists
+        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        configuration.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
+        configuration.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        configuration.setExposedHeaders(Arrays.asList(exposedHeaders.split(",")));
         configuration.setAllowCredentials(allowCredentials);
         configuration.setMaxAge(maxAge);
 

@@ -20,26 +20,30 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     /**
      * 이메일로 사용자 조회
+     * Spring Security에서 username 파라미터 이름을 사용하지만, 실제로는 이메일을 받음
      */
     @Override
     @Transactional(readOnly = true)
-    public UserDetails loadUserByUsername(String emailOrId) throws UsernameNotFoundException {
-        User user;
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+        // 이메일로만 조회 (일관성 개선)
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() ->
+                new UsernameNotFoundException("User not found with email: " + email)
+            );
 
-        // ID로 조회 시도 (JWT 토큰에서 추출한 경우)
-        if (emailOrId.matches("\\d+")) {
-            Long userId = Long.parseLong(emailOrId);
-            user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                    new UsernameNotFoundException("User not found with id: " + userId)
-                );
-        } else {
-            // 이메일로 조회 (로그인 시)
-            user = userRepository.findByEmail(emailOrId)
-                .orElseThrow(() ->
-                    new UsernameNotFoundException("User not found with email: " + emailOrId)
-                );
-        }
+        return UserPrincipal.create(user);
+    }
+
+    /**
+     * ID로 사용자 조회 (추가 메서드)
+     * 필요한 경우 ID로도 조회 가능하도록 별도 메서드 제공
+     */
+    @Transactional(readOnly = true)
+    public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() ->
+                new UsernameNotFoundException("User not found with id: " + userId)
+            );
 
         return UserPrincipal.create(user);
     }

@@ -38,7 +38,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/feed")
+@RequestMapping("/feed")
 @RequiredArgsConstructor
 public class FeedController {
 

@@ -100,7 +100,7 @@ log/
 
 ### Environment ###
 .env
-.env.local
+.env
 .env.development
 .env.test
 .env.production
@@ -170,3 +170,31 @@ coverage/
 ### Generated Files ###
 generated/
 gen/
+
+# Environment variables
+.env
+.env
+.env.prod
+*.env
+
+# Docker volumes
+mysql_data/
+redis_data/
+
+# Logs
+logs/
+*.log
+
+# Firebase config
+firebase-service-account.json
+
+*.md
+
+docker-compose.prod.yml
+
+application.yaml
+application*.yaml
+
+.env.example
+
+/scripts

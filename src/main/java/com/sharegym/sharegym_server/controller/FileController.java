@@ -23,7 +23,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/files")
+@RequestMapping("/files")
 @RequiredArgsConstructor
 @Profile({"dev", "prod"})
 @Tag(name = "File", description = "파일 업로드 API")

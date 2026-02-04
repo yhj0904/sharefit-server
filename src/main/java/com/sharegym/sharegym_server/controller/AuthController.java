@@ -7,6 +7,10 @@ import com.sharegym.sharegym_server.dto.response.ApiResponse;
 import com.sharegym.sharegym_server.dto.response.AuthResponse;
 import com.sharegym.sharegym_server.dto.response.UserResponse;
 import com.sharegym.sharegym_server.service.AuthService;
+import com.sharegym.sharegym_server.service.FCMService;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.sharegym.sharegym_server.security.CurrentUser;
+import com.sharegym.sharegym_server.security.UserPrincipal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -25,12 +29,15 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 @Tag(name = "Auth", description = "인증 관련 API")
 public class AuthController {
 
     private final AuthService authService;
+
+    @Autowired(required = false)
+    private FCMService fcmService;
 
     /**
      * 회원가입 (백엔드 기존 경로)
@@ -125,9 +132,57 @@ public class AuthController {
      */
     @PostMapping("/logout")
     @Operation(summary = "로그아웃", description = "로그아웃 처리를 합니다.")
-    public ResponseEntity<Void> logout() {
-        log.info("Logout request");
+    public ResponseEntity<Void> logout(@CurrentUser UserPrincipal currentUser) {
+        log.info("Logout request from user: {}", currentUser.getId());
         authService.logout();
+        // Remove FCM token on logout (if FCM is enabled)
+        if (fcmService != null) {
+            fcmService.removeFcmToken(currentUser.getId());
+        }
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * FCM 토큰 업데이트
+     * 모바일 앱에서 FCM 토큰을 서버에 등록/갱신
+     */
+    @PostMapping("/fcm-token")
+    @Operation(summary = "FCM 토큰 업데이트", description = "푸시 알림을 위한 FCM 토큰을 업데이트합니다.")
+    public ResponseEntity<Map<String, String>> updateFcmToken(
+            @CurrentUser UserPrincipal currentUser,
+            @RequestBody Map<String, String> request) {
+        String fcmToken = request.get("fcmToken");
+        if (fcmToken == null || fcmToken.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "FCM token is required"));
+        }
+
+        if (fcmService == null) {
+            log.warn("FCM service not available, skipping token update");
+            return ResponseEntity.ok(Map.of("message", "FCM not enabled"));
+        }
+
+        log.info("Updating FCM token for user: {}", currentUser.getId());
+        fcmService.updateFcmToken(currentUser.getId(), fcmToken);
+
+        return ResponseEntity.ok(Map.of("message", "FCM token updated successfully"));
+    }
+
+    /**
+     * FCM 토큰 삭제
+     * 푸시 알림 비활성화
+     */
+    @DeleteMapping("/fcm-token")
+    @Operation(summary = "FCM 토큰 삭제", description = "푸시 알림을 비활성화합니다.")
+    public ResponseEntity<Map<String, String>> removeFcmToken(@CurrentUser UserPrincipal currentUser) {
+        if (fcmService == null) {
+            log.warn("FCM service not available, skipping token removal");
+            return ResponseEntity.ok(Map.of("message", "FCM not enabled"));
+        }
+
+        log.info("Removing FCM token for user: {}", currentUser.getId());
+        fcmService.removeFcmToken(currentUser.getId());
+
+        return ResponseEntity.ok(Map.of("message", "FCM token removed successfully"));
     }
 }

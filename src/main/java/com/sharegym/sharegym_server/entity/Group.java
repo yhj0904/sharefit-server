@@ -11,7 +11,7 @@ import java.util.Random;
  * 그룹 Entity
  */
 @Entity
-@Table(name = "`groups`", // MySQL 예약어 회피
+@Table(name = "`user_groups`", // MySQL 예약어 회피
     indexes = {
         @Index(name = "idx_invite_code", columnList = "invite_code"),
         @Index(name = "idx_created_at", columnList = "created_at")

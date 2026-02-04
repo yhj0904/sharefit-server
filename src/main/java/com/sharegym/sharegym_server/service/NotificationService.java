@@ -3,6 +3,7 @@ package com.sharegym.sharegym_server.service;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sharegym.sharegym_server.dto.notification.*;
 import com.sharegym.sharegym_server.entity.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,20 +20,17 @@ import java.util.Map;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NotificationService {
 
     private final SseEmitterService sseEmitterService;
-    private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    @Autowired
-    public NotificationService(SseEmitterService sseEmitterService,
-                             @Autowired(required = false) RedisTemplate<String, Object> redisTemplate,
-                             ObjectMapper objectMapper) {
-        this.sseEmitterService = sseEmitterService;
-        this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
-    }
+    @Autowired(required = false)
+    private FCMService fcmService;
+
+    @Autowired(required = false)
+    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 운동 시작 알림
@@ -103,9 +101,21 @@ public class NotificationService {
             .message(workout.getUser().getDisplayName() + "님이 운동을 완료했습니다!")
             .build();
 
+        String title = "운동 완료";
+        String body = String.format("%s님이 %d분간 운동을 완료했습니다!",
+                workout.getUser().getDisplayName(), workout.getDuration());
+
         // 팔로워들에게 알림
         workout.getUser().getFollowers().forEach(follower -> {
-            sseEmitterService.sendToUser(follower.getId(), "workout:complete", notification);
+            sendNotificationWithFallback(
+                follower.getId(),
+                "workout:complete",
+                notification,
+                title,
+                body,
+                FcmNotificationRequest.NotificationType.WORKOUT_COMPLETE,
+                Map.of("workoutId", String.valueOf(workout.getId()))
+            );
         });
 
         // 운동 구독자들에게 알림
@@ -125,8 +135,16 @@ public class NotificationService {
             .message(message)
             .build();
 
-        // 대상 사용자에게 알림
-        sseEmitterService.sendToUser(targetUserId, "cheer", notification);
+        // 대상 사용자에게 알림 (SSE 실패시 FCM 폴백)
+        sendNotificationWithFallback(
+            targetUserId,
+            "cheer",
+            notification,
+            "응원 도착!",
+            fromUserName + "님이 응원을 보냈습니다! 💪",
+            FcmNotificationRequest.NotificationType.CHEER,
+            Map.of("fromUserId", String.valueOf(fromUserId), "fromUserName", fromUserName)
+        );
 
         log.info("Cheer notification sent from {} to {}", fromUserId, targetUserId);
     }
@@ -180,7 +198,15 @@ public class NotificationService {
 
         // 피드 작성자에게 알림 (본인이 아닌 경우)
         if (!feed.getUser().getId().equals(liker.getId())) {
-            sseEmitterService.sendToUser(feed.getUser().getId(), "feed:like", notification);
+            sendNotificationWithFallback(
+                feed.getUser().getId(),
+                "feed:like",
+                notification,
+                "좋아요",
+                liker.getDisplayName() + "님이 회원님의 피드를 좋아합니다",
+                FcmNotificationRequest.NotificationType.FEED_LIKE,
+                Map.of("feedId", String.valueOf(feed.getId()), "likerId", String.valueOf(liker.getId()))
+            );
         }
 
         log.debug("Like notification sent for feed {}", feed.getId());
@@ -200,18 +226,34 @@ public class NotificationService {
             .content(comment.getContent())
             .build();
 
+        String title = "새 댓글";
+        String body = comment.getUser().getDisplayName() + ": " +
+                (comment.getContent().length() > 50 ? comment.getContent().substring(0, 50) + "..." : comment.getContent());
+
         // 피드 작성자에게 알림 (본인이 아닌 경우)
         if (!feed.getUser().getId().equals(comment.getUser().getId())) {
-            sseEmitterService.sendToUser(feed.getUser().getId(), "feed:comment", notification);
+            sendNotificationWithFallback(
+                feed.getUser().getId(),
+                "feed:comment",
+                notification,
+                title,
+                body,
+                FcmNotificationRequest.NotificationType.FEED_COMMENT,
+                Map.of("feedId", String.valueOf(feed.getId()), "commentId", String.valueOf(comment.getId()))
+            );
         }
 
         // 부모 댓글 작성자에게 알림 (대댓글인 경우)
         if (comment.getParentComment() != null &&
             !comment.getParentComment().getUser().getId().equals(comment.getUser().getId())) {
-            sseEmitterService.sendToUser(
+            sendNotificationWithFallback(
                 comment.getParentComment().getUser().getId(),
                 "comment:reply",
-                notification
+                notification,
+                "대댓글",
+                comment.getUser().getDisplayName() + "님이 회원님의 댓글에 답글을 달았습니다",
+                FcmNotificationRequest.NotificationType.FEED_COMMENT,
+                Map.of("feedId", String.valueOf(feed.getId()), "commentId", String.valueOf(comment.getId()))
             );
         }
 
@@ -271,7 +313,15 @@ public class NotificationService {
             .build();
 
         // 팔로우 대상에게 알림
-        sseEmitterService.sendToUser(following.getId(), "follow", notification);
+        sendNotificationWithFallback(
+            following.getId(),
+            "follow",
+            notification,
+            "새 팔로워",
+            follower.getDisplayName() + "님이 회원님을 팔로우하기 시작했습니다",
+            FcmNotificationRequest.NotificationType.FOLLOW,
+            Map.of("followerId", String.valueOf(follower.getId()), "followerName", follower.getDisplayName())
+        );
 
         log.info("Follow notification sent from {} to {}", follower.getId(), following.getId());
     }
@@ -298,7 +348,8 @@ public class NotificationService {
     }
 
     /**
-     * Redis Pub/Sub을 통해 FCM 알림 요청 전달
+     * FCM 푸시 알림 전송
+     * Redis Pub/Sub 또는 직접 FCMService 호출
      */
     private void sendFcmNotification(
             Long userId,
@@ -307,29 +358,48 @@ public class NotificationService {
             FcmNotificationRequest.NotificationType type,
             Map<String, String> data) {
 
-        // Check if Redis is available
-        if (redisTemplate == null) {
-            log.debug("Redis not available in dev mode - FCM notification skipped for user {}", userId);
-            return;
+        // 1. FCMService가 사용 가능하면 직접 호출
+        if (fcmService != null) {
+            try {
+                FcmNotificationRequest fcmRequest = FcmNotificationRequest.builder()
+                        .userId(userId)
+                        .title(title)
+                        .body(body)
+                        .notificationType(type)
+                        .data(data != null ? data : new HashMap<>())
+                        .priority(FcmNotificationRequest.Priority.NORMAL)
+                        .build();
+
+                fcmService.sendNotification(fcmRequest);
+                log.debug("FCM notification sent directly for user {}", userId);
+                return;
+            } catch (Exception e) {
+                log.error("Failed to send FCM notification directly for user {}: {}", userId, e.getMessage());
+            }
         }
 
-        try {
-            FcmNotificationRequest fcmRequest = FcmNotificationRequest.builder()
-                    .userId(userId)
-                    .title(title)
-                    .body(body)
-                    .notificationType(type)
-                    .data(data != null ? data : new HashMap<>())
-                    .priority(FcmNotificationRequest.Priority.NORMAL)
-                    .build();
+        // 2. Redis가 사용 가능하면 Pub/Sub 사용 (분산 환경)
+        if (redisTemplate != null) {
+            try {
+                FcmNotificationRequest fcmRequest = FcmNotificationRequest.builder()
+                        .userId(userId)
+                        .title(title)
+                        .body(body)
+                        .notificationType(type)
+                        .data(data != null ? data : new HashMap<>())
+                        .priority(FcmNotificationRequest.Priority.NORMAL)
+                        .build();
 
-            // Redis Pub/Sub으로 FCM 알림 요청 전송
-            String message = objectMapper.writeValueAsString(fcmRequest);
-            redisTemplate.convertAndSend("notification:fcm", message);
+                // Redis Pub/Sub으로 FCM 알림 요청 전송
+                String message = objectMapper.writeValueAsString(fcmRequest);
+                redisTemplate.convertAndSend("notification:fcm", message);
 
-            log.debug("FCM notification request published for user {}", userId);
-        } catch (Exception e) {
-            log.error("Failed to send FCM notification request for user {}: {}", userId, e.getMessage());
+                log.debug("FCM notification request published via Redis for user {}", userId);
+            } catch (Exception e) {
+                log.error("Failed to send FCM notification via Redis for user {}: {}", userId, e.getMessage());
+            }
+        } else {
+            log.debug("Neither FCMService nor Redis available - FCM notification skipped for user {}", userId);
         }
     }
 }

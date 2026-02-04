@@ -3,9 +3,11 @@ package com.sharegym.sharegym_server.controller;
 import com.sharegym.sharegym_server.dto.request.UpdateProfileRequest;
 import com.sharegym.sharegym_server.dto.response.ApiResponse;
 import com.sharegym.sharegym_server.dto.response.UserResponse;
+import com.sharegym.sharegym_server.dto.response.WorkoutSessionResponse;
 import com.sharegym.sharegym_server.security.CurrentUser;
 import com.sharegym.sharegym_server.security.UserPrincipal;
 import com.sharegym.sharegym_server.service.UserService;
+import com.sharegym.sharegym_server.service.WorkoutService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,12 +24,13 @@ import java.util.List;
  */
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 @Tag(name = "User", description = "사용자 관련 API")
 public class UserController {
 
     private final UserService userService;
+    private final WorkoutService workoutService;
 
     /**
      * 현재 사용자 프로필 조회
@@ -142,5 +145,31 @@ public class UserController {
         log.info("Get following of user: {}", userId);
         List<UserResponse> response = userService.getFollowing(userId, userPrincipal.getId());
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    /**
+     * 사용자 운동 히스토리 조회 (프론트엔드 규격)
+     * 프론트엔드 API 규격: GET /api/v1/users/{userId}/workouts
+     */
+    @GetMapping("/{userId}/workouts")
+    @Operation(summary = "사용자 운동 히스토리", description = "특정 사용자의 운동 히스토리를 조회합니다.")
+    public ResponseEntity<List<WorkoutSessionResponse>> getUserWorkoutHistory(
+        @PathVariable Long userId) {
+        log.info("Get workout history for user: {}", userId);
+        List<WorkoutSessionResponse> response = workoutService.getUserWorkoutHistory(userId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 사용자 마지막 운동 조회 (프론트엔드 규격)
+     * 프론트엔드 API 규격: GET /api/v1/users/{userId}/workouts/last
+     */
+    @GetMapping("/{userId}/workouts/last")
+    @Operation(summary = "마지막 운동 조회", description = "사용자의 가장 최근 운동을 조회합니다.")
+    public ResponseEntity<WorkoutSessionResponse> getLastWorkout(
+        @PathVariable Long userId) {
+        log.info("Get last workout for user: {}", userId);
+        WorkoutSessionResponse response = workoutService.getLastWorkout(userId);
+        return ResponseEntity.ok(response);
     }
 }
