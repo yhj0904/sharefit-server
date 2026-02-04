@@ -198,3 +198,5 @@ application*.yaml
 .env.example
 
 /scripts
+
+/.claude/settings.local.json
